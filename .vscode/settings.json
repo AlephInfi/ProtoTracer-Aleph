@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.clang-format": "cpp",
+        "string": "cpp",
+        "initializer_list": "cpp"
+    }
+}
