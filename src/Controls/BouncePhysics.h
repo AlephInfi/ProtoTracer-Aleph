@@ -26,8 +26,8 @@ public:
         float dT = ((float)(currentMillis - previousMillis)) / 1000.0f;
 
         if (dT > 0.1f && dT < 2.0f) {
-            currentVelocity += velocity + gravity * dT;
-            currentPosition += velocityRatio * currentVelocity * dT;
+            currentVelocity += velocity + gravity * dT; // vf = v0 + at
+            currentPosition += velocityRatio * currentVelocity * dT; 
             
             previousMillis = currentMillis;
         }

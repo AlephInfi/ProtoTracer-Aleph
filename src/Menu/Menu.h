@@ -54,7 +54,7 @@ private:
         MenuHandler::SetMenuMax(BoopSensor, 2);
         MenuHandler::SetMenuMax(SpectrumMirror, 2);
         MenuHandler::SetMenuMax(FaceSize, 4);
-        MenuHandler::SetMenuMax(Color, 10);
+        MenuHandler::SetMenuMax(Color, 11);
     }
 
     static void SetDefaultEntries(){
