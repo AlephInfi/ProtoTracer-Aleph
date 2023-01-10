@@ -37,7 +37,6 @@ SmartMatrixHUB75 controller = SmartMatrixHUB75(maxBrightness, maxAccentBrightnes
 AlephHUB75 animation = AlephHUB75();
 //ProtogenHUB75Animation animation = ProtogenHUB75Animation();
 
-
 float FreeMem(){
     uint32_t stackT;
     uint32_t heapT;
@@ -59,6 +58,10 @@ void setup() {
     Serial.println("\nStarting...");
 
     controller.Initialize();
+    animation.Initialize();
+
+    Serial.println("FINISHED SETUP");
+    delay(3000);
 }
 
 void loop() {
@@ -80,13 +83,12 @@ void loop() {
     */
 
     controller.Display();
-    
+
     Serial.print("Animated in ");
     Serial.print(animation.GetAnimationTime(), 4);
 
     Serial.print("s, Rendered in ");
     Serial.print(controller.GetRenderTime(), 4);
-
     
     Serial.print("s, Free memory ");
     Serial.print(FreeMem(),3);

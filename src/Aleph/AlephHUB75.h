@@ -9,12 +9,13 @@
 #include "AlephL2.h"
 #include "..\Render\Scene.h"
 #include "..\Signals\FunctionGenerator.h"
-#include "..\Menu\RadialMenu.h"
+#include "..\Menu\Menu.h"
 #include "..\Sensors\tofBoopSensor.h"
 #include "PupilTrack.h"
 #include "Sensors\EarSteppers.h"
 
 #include "..\Materials\Animated\RainbowNoise.h"
+#include "..\Materials\Animated\NoiseTemplate.h"
 #include "..\Materials\Animated\RainbowSpiral.h"
 #include "..\Materials\Animated\SpectrumAnalyzer.h"
 #include "..\Materials\Animated\EQGradient.h"
@@ -37,10 +38,11 @@ private:
     LEDStripBackground ledStripBackground;
     EasyEaseAnimator<21> eEA = EasyEaseAnimator<21>(EasyEaseInterpolation::Overshoot, 1.0f, 0.35f);
     PupilTrack pupil;
-    sStepper ears;
+    sStepper ears; // for Aleph
     
     //Materials
     RainbowNoise rainbowNoise;
+    Noise AlephNoise;
     RainbowSpiral rainbowSpiral;
     SimpleMaterial redMaterial = SimpleMaterial(RGBColor(255, 0, 0));
     SimpleMaterial orangeMaterial = SimpleMaterial(RGBColor(255, 165, 0));
@@ -52,13 +54,6 @@ private:
     SimpleMaterial pinkMaterial = SimpleMaterial(RGBColor(252, 121, 224));
     SimpleMaterial blackMaterial = SimpleMaterial(RGBColor(0, 0, 0));
     
-    RGBColor gradientSpectrum[2] = {RGBColor(5, 162, 232), RGBColor(10, 170, 255)};
-    GradientMaterial<2> gradientMat = GradientMaterial<2>(gradientSpectrum, 350.0f, false);
-
-    RGBColor SimplexSpectrum[3] = {RGBColor(0, 255, 0), RGBColor(0, 255, 210), RGBColor(0, 140, 255)};
-    GradientMaterial<3> SimplexGrad = GradientMaterial<3>(SimplexSpectrum, 150.0f, false);
-    SimplexNoise<3> SimplexMat = SimplexNoise<3>(1, &SimplexGrad);
-
     RGBColor DJgrad[7] = {RGBColor(255, 0, 0), RGBColor(255, 100, 0), RGBColor(60, 255, 0), RGBColor(0, 255, 0), RGBColor(0, 255, 100), RGBColor(0, 50, 255), RGBColor(50, 0, 255)};
     GradientMaterial<7> DJMat = GradientMaterial<7>(DJgrad, 1.0f, false);
 
@@ -95,6 +90,8 @@ private:
     uint8_t offsetFaceIndARG = 51;
     uint8_t offsetFaceIndOSC = 52;
 
+    const uint8_t numParamsL1 = 16;
+
     void LinkEasyEase(){
         eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::eMad), AlephBase::eMad, 15, 0.0f, 1.0f);
         eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::eSad), AlephBase::eSad, 50, 0.0f, 1.0f);
@@ -104,8 +101,10 @@ private:
         eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::eBlush), AlephBase::eBlush, 45, 0.0f, 1.0f);
         eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::mSad), AlephBase::mSad, 45, 0.0f, 1.0f);
 
-        eEA.AddParameter(L2.GetMorphWeightReference(AlephL2::PupilVertical), AlephL2::PupilVertical, 30, 0.5f, 1.0f);
-        eEA.AddParameter(L2.GetMorphWeightReference(AlephL2::PupilHorizontal), AlephL2::PupilHorizontal, 30, 0.5f, 1.0f);
+        eEA.AddParameter(L2.GetMorphWeightReference(AlephL2::PupilVertical), AlephL2::PupilVertical + numParamsL1, 30, 0.5f, 1.0f);
+        eEA.AddParameter(L2.GetMorphWeightReference(AlephL2::PupilHorizontal), AlephL2::PupilHorizontal + numParamsL1, 30, 0.5f, 1.0f);
+        eEA.AddParameter(L2.GetMorphWeightReference(AlephL2::PupilDilate), AlephL2::PupilDilate + numParamsL1, 30, 0.0f, 1.0f);
+        eEA.AddParameter(L2.GetMorphWeightReference(AlephL2::PupilOff), AlephL2::PupilOff + numParamsL1, 30, 0.0f, 1.0f);
 
         eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::m_EE), AlephBase::m_EE, 2, 0.0f, 1.0f);
         eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::m_IH), AlephBase::m_IH, 2, 0.0f, 1.0f);
@@ -149,7 +148,7 @@ private:
     }
 
     void SetMaterialLayers(){
-        L1materialAnimator.SetBaseMaterial(Material::Add, &gradientMat);
+        L1materialAnimator.SetBaseMaterial(Material::Replace, &AlephNoise);
         L1materialAnimator.AddMaterial(Material::Replace, &orangeMaterial, 40, 0.0f, 1.0f);//layer 1
         L1materialAnimator.AddMaterial(Material::Replace, &whiteMaterial, 40, 0.0f, 1.0f);//layer 2
         L1materialAnimator.AddMaterial(Material::Replace, &greenMaterial, 40, 0.0f, 1.0f);//layer 3
@@ -159,11 +158,10 @@ private:
         L1materialAnimator.AddMaterial(Material::Replace, &blueMaterial, 40, 0.0f, 1.0f);//layer 7
         L1materialAnimator.AddMaterial(Material::Replace, &rainbowSpiral, 40, 0.0f, 1.0f);//layer 8
         L1materialAnimator.AddMaterial(Material::Lighten, &rainbowNoise, 40, 0.35f, 1.0f);//layer 9
-        L1materialAnimator.AddMaterial(Material::Replace, &SimplexMat, 40, 0.35f, 1.0f);//layer 10
+        L1materialAnimator.AddMaterial(Material::Replace, &AlephNoise, 40, 0.35f, 1.0f);//layer 10
 
         backgroundMaterial.SetBaseMaterial(Material::Add, Menu::GetMaterial());
         backgroundMaterial.AddMaterial(Material::Add, &sA, 20, 0.0f, 1.0f);
-        backgroundMaterial.AddMaterial(Material::Add, &DJMat, 20, 0.0f, 1.0f);
         backgroundMaterial.AddMaterial(Material::Add, &aRG, 20, 0.0f, 1.0f);
         backgroundMaterial.AddMaterial(Material::Add, &oSC, 20, 0.0f, 1.0f);
     }
@@ -180,7 +178,7 @@ private:
         ears.emotion(sStepper::mad, 400);
         eEA.AddParameterFrame(AlephBase::eMad, 1.0f);
         eEA.AddParameterFrame(AlephBase::mSad, 1.0f);
-        L1materialAnimator.AddMaterialFrame(redMaterial, 1.0f);
+        L1materialAnimator.AddMaterialFrame(redMaterial, 0.9f);
     }
 
     void Sad(){
@@ -194,7 +192,8 @@ private:
         ears.emotion(sStepper::happy, 700);
         eEA.AddParameterFrame(AlephBase::eBoop, 1.0f);
         eEA.AddParameterFrame(AlephBase::Blush, 0.0f);
-        L1materialAnimator.AddMaterialFrame(pinkMaterial, 0.8f);
+        eEA.AddParameterFrame(AlephL2::PupilOff, 1.0f);
+        L1materialAnimator.AddMaterialFrame(pinkMaterial, 0.9f);
     }
     
     void Doubt(){
@@ -206,6 +205,20 @@ private:
     void Frown(){
         ears.emotion(sStepper::sad, 1000);
         eEA.AddParameterFrame(AlephBase::mSad, 1.0f);
+    }
+
+    void Cute(){
+        ears.emotion(sStepper::happy, 500);
+        eEA.AddParameterFrame(AlephBase::eBlush, 1.0f);
+        eEA.AddParameterFrame(AlephL2::PupilOff, 1.0f);
+        L1materialAnimator.AddMaterialFrame(pinkMaterial, 0.9f);
+    }
+
+    void HeartEyes(){
+        ears.emotion(sStepper::happy, 500);
+        eEA.AddParameterFrame(AlephBase::eHeart, 1.0f);
+        eEA.AddParameterFrame(AlephL2::PupilOff, 1.0f);
+        L1materialAnimator.AddMaterialFrame(pinkMaterial, 0.9f);
     }
 
     void SpectrumAnalyzerFace(){
@@ -253,9 +266,8 @@ private:
             case 5: L1materialAnimator.AddMaterialFrame(blueMaterial, 0.8f); break;
             case 6: L1materialAnimator.AddMaterialFrame(yellowMaterial, 0.8f); break;
             case 7: L1materialAnimator.AddMaterialFrame(purpleMaterial, 0.8f); break;
-            case 8: L1materialAnimator.AddMaterialFrame(rainbowSpiral, 0.8f); break;
-            case 9: L1materialAnimator.AddMaterialFrame(rainbowNoise, 0.8f); break;
-            case 10: L1materialAnimator.AddMaterialFrame(SimplexMat, 0.8f); break;
+            case 8: L1materialAnimator.AddMaterialFrame(rainbowNoise, 0.8f); break;
+            case 9: L1materialAnimator.AddMaterialFrame(AlephNoise, 0.8f); break;
             default: break;
         }
     }
@@ -280,14 +292,20 @@ public:
         ledStripBackground.GetObject()->SetMaterial(&L1materialAnimator);
 
         sA.SetMaterial(&DJMat);
-        //DJMat.SetRotationAngle(90);
 
-        boop.Initialize(5);
-        pupil.Initialize(Vector3D(-1000.0f, 0.0f, 0.0f), true); //uses pins from menu
+        //ears.Initialize(24, 25, 28, 29);
+        boop.Initialize(25);
+        pupil.Initialize(80, 26, 27); //uses pins from menu if called without defining joystick pins (26, 27)
 
-        MicrophoneFourier::Initialize(15, 8000, 50.0f, 120.0f);//8KHz sample rate, 50dB min, 120dB max default
-        Menu::Initialize(12, 80, 20, 29, 26, 27, 500);//7 is number of faces
-        //Menu::Initialize(12, 20, 500);//7 is number of faces
+        MicrophoneFourier::Initialize(15, 8000, 50.0f, 120.0f); //8KHz sample rate, 50dB min, 120dB max default
+    }
+
+    //Initialize dependent objects: menu, joystick calibration, ear calibration
+    void Initialize(){
+        //Menu::Initialize(6, 80, 30, 31, 26, 27, 500); //Radial
+        Menu::Initialize(10, 30, /*31,*/ 500);//7 is number of faces
+
+        //ears.CalibrateRotation();
     }
 
     void FadeIn(float stepRatio) override {}
@@ -309,19 +327,19 @@ public:
 
         float xOffset = fGenMatXMove.Update();
         float yOffset = fGenMatYMove.Update();
-        
+ 
         Menu::Update();
-
+ 
         SetMaterialColor();
-
+ 
         bool isBooped = Menu::UseBoopSensor() ? boop.isBooped() : 0;
         uint8_t mode = Menu::GetFaceState();//change by button press
-
+ 
         MicrophoneFourier::Update();
         sA.SetHueAngle(ratio * 360.0f * 4.0f);
         sA.SetMirrorYState(Menu::MirrorSpectrumAnalyzer());
         sA.SetFlipYState(!Menu::MirrorSpectrumAnalyzer());
-        
+ 
         aRG.SetRadius((xOffset + 2.0f) * 2.0f + 25.0f);
         aRG.SetSize(Vector2D((xOffset + 2.0f) * 10.0f + 50.0f, (xOffset + 2.0f) * 10.0f + 50.0f));
         aRG.SetHueAngle(ratio * 360.0f * 8.0f);
@@ -335,31 +353,54 @@ public:
         voiceDetection.SetThreshold(map(Menu::GetMicLevel(), 0, 10, 1000, 50));
 
         UpdateFFTVisemes();
+        
         pupil.SampleData();
 
         if (isBooped && mode != 6){
             Boop();
         }
         else{
-            if (mode == 0) Default();
-            else if (mode == 1) Angry();
-            else if (mode == 2) Doubt();
-            else if (mode == 3) Frown();
-            else if (mode == 4) Sad();
-            else if (mode == 5);
-            else if (mode == 6);
-            else if (mode == 7);
-            else if (mode == 8);
-            else if (mode == 9) {
+            if (mode == 0){
+                //Serial.print("0"); 
+                Default();
+            }
+            else if (mode == 1){
+                //Serial.print("1"); 
+                Angry();
+            } 
+            else if (mode == 2){
+                //Serial.print("2"); 
+                Doubt();
+            } 
+            else if (mode == 3){
+                //Serial.print("3"); 
+                Frown();
+            }   
+            else if (mode == 4){
+                //Serial.print("4"); 
+                Sad();
+            } 
+            else if (mode == 5){
+                //Serial.print("5"); 
+                Cute();
+            } 
+            else if (mode == 6){
+                //Serial.print("6"); 
+                HeartEyes();
+            } 
+            else if (mode == 7){ 
+                //Serial.print("7"); 
                 aRG.Update(MicrophoneFourier::GetFourierFiltered());
                 AudioReactiveGradientFace();
             }
-            else if (mode == 10){
+            else if (mode == 8){
+                //Serial.print("8"); 
                 oSC.Update(MicrophoneFourier::GetSamples());
                 OscilloscopeFace();
-            }
+            } 
             else {
-                sA.Update(MicrophoneFourier::GetFourierFiltered());
+                //Serial.print("spectrum");
+                sA.Update(MicrophoneFourier::GetScaledOutputMagnitude());
                 SpectrumAnalyzerFace();
             }
         }
@@ -369,8 +410,10 @@ public:
 
         //L1.SetMorphWeight(NukudeFace::BiggerNose, 1.0f);
         //L1.SetMorphWeight(NukudeFace::MoveEye, 1.0f);
-        L2.SetMorphWeight(AlephL2::PupilHorizontal, pupil.position.X);
-        L2.SetMorphWeight(AlephL2::PupilVertical, pupil.position.Y);
+
+        
+        eEA.AddParameterFrame(AlephL2::PupilHorizontal + numParamsL1, pupil.position.X);
+        eEA.AddParameterFrame(AlephL2::PupilVertical + numParamsL1, pupil.position.Y);
 
         eEA.Update();
         L1.Update();
@@ -379,6 +422,7 @@ public:
         float menuRatio = Menu::ShowMenu();
 
         rainbowNoise.Update(ratio);
+        AlephNoise.Update(ratio);
         rainbowSpiral.Update(ratio);
         L1materialAnimator.Update();
         backgroundMaterial.Update();
@@ -393,13 +437,14 @@ public:
         float adjustFacePos = float(4 - faceSize) * 5.0f;
         float adjustFaceX = float(faceSize) * 0.05f;
         
-        L1.GetObject()->GetTransform()->SetPosition(Vector3D(111.0f + xOffset - xShift + adjustFacePos, 51.5f + yOffset + yShift, -5.0f));
-        L1.GetObject()->GetTransform()->SetScale(Vector3D(-51.0f + adjustFaceX, 51.0f, 1.0f).Multiply(scale));
-        L2.GetObject()->GetTransform()->SetPosition(Vector3D(111.0f + xOffset - xShift + adjustFacePos, 51.5f + yOffset + yShift, 0.0f));
-        L2.GetObject()->GetTransform()->SetScale(Vector3D(-51.0f + adjustFaceX, 51.0f, 1.0f).Multiply(scale));
+        L1.GetObject()->GetTransform()->SetPosition(Vector3D(105.0f + xOffset - xShift + adjustFacePos, 51.5f + yOffset + yShift, 0.0f));
+        L1.GetObject()->GetTransform()->SetScale(Vector3D(-49.0f + adjustFaceX, 49.0f, 1.0f).Multiply(scale));
+        L2.GetObject()->GetTransform()->SetPosition(Vector3D(105.0f + xOffset - xShift + adjustFacePos, 51.5f + yOffset + yShift, -10.0f));
+        L2.GetObject()->GetTransform()->SetScale(Vector3D(-49.0f + adjustFaceX, 49.0f, 1.0f).Multiply(scale));
 
 
         L1.GetObject()->UpdateTransform();
         L2.GetObject()->UpdateTransform();
+
     }
 };

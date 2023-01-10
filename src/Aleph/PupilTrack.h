@@ -14,30 +14,26 @@ class PupilTrack{
     bool debug;
     elapsedMillis time;
 
+    static Joystick joystick;
+
     public:
     Vector3D position;
 
-    //One joystick, one button, basis x, y, z, sensitivity in percent 0-100
-    void Initialize(Vector3D basis = Vector3D(0.0f, 0.0f, 0.0f), bool debug = false){
-        this->basis = basis;
-        if(debug) this->debug = true;
-    }
-
-/*
-    bool Initialize(Joystick joystick, uint8_t buttonPin, uint8_t sensitivity, Vector3D basis = Vector3D(0.0f, 0.0f, 0.0f), bool debug = false){
-        this->joystick = joystick;
-        this->basis = basis;
-
-        this->X = -1;
-        this->Y = -1;
-        this->button = buttonPin;
+    //joystick from radial menu, one button, basis x, y, z, sensitivity in percent 0-100
+    void Initialize(uint8_t sensitivity, Vector3D basis = Vector3D(0.0f, 0.0f, 0.0f), bool debug = false){
         this->sensitivity = sensitivity;
-        joystick.SetSensitivity(sensitivity);
-        
-        pinMode(button, INPUT);
+        this->basis = basis;
         if(debug) this->debug = true;
     }
-*/
+
+    //use non-menu joystick
+    void Initialize(uint8_t sensitivity, uint8_t x, uint8_t y, Vector3D basis = Vector3D(0.0f, 0.0f, 0.0f), bool debug = false){
+        this->joystick.Initialize(x, y, sensitivity);
+        this->sensitivity = sensitivity;
+        this->basis = basis;
+        if(debug) this->debug = true;
+    }
+
     void SampleData(){
         MenuHandler::CalculateJoystick();
 
@@ -69,3 +65,5 @@ class PupilTrack{
 
 Vector3D PupilTrack::basis = Vector3D(0.0f, 0.0f, 0.0f);
 uint8_t PupilTrack::sensitivity = 100;
+
+Joystick PupilTrack::joystick;

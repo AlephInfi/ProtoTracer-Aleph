@@ -49,7 +49,7 @@ private:
     MaterialAnimator<10> materialAnimator;
     MaterialAnimator<4> backgroundMaterial;
     
-    SpectrumAnalyzer sA = SpectrumAnalyzer(Vector2D(200, 100), Vector2D(85, 50), true, true); 
+    SpectrumAnalyzer sA = SpectrumAnalyzer(Vector2D(200, 100), Vector2D(60 /*85*/, 50), true, true); 
     AudioReactiveGradient aRG = AudioReactiveGradient(Vector2D(160, 160), Vector2D(0.0f, 0.0f), true, true); 
     Oscilloscope oSC = Oscilloscope(Vector2D(200, 50), Vector2D(0, 0));
 
@@ -250,8 +250,8 @@ public:
         boop.Initialize(5);
 
 
-        MicrophoneFourier::Initialize(15 /*A0*/, 8000, 0.0f, 135.0f);//8KHz sample rate, 50dB min, 120dB max
-        Menu::Initialize(9, 20, 500);//7 is number of faces
+        MicrophoneFourier::Initialize(15 /*A0*/, 8000, 50.0f, 120.0f);//8KHz sample rate, 50dB min, 120dB max
+        Menu::Initialize(9, 30, 500);//7 is number of faces
     }
 
     void FadeIn(float stepRatio) override {}
@@ -312,7 +312,7 @@ public:
                 OscilloscopeFace();
             }
             else {
-                sA.Update(MicrophoneFourier::GetFourierFiltered());
+                sA.Update(MicrophoneFourier::GetOutputMagnitude());
                 SpectrumAnalyzerFace();
             }
         }

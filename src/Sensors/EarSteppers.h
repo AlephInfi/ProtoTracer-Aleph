@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <Stepper.h>
 #include <math.h>
-#include "EEPROMHandler.h"
+#include "MenuHandler.h"
 
 /**
  * @brief 
@@ -49,6 +49,9 @@ class sStepper{
             this->cc = Motor2Pin1;
             this->dd = Motor2Pin2;
 
+            Left = Stepper(StepsInRevolution, aa, bb);
+            Right = Stepper(StepsInRevolution, cc, dd);
+
             Left.setSpeed(StepperSpeed);
             Right.setSpeed(StepperSpeed);
         }
@@ -61,7 +64,7 @@ class sStepper{
          * Rotates the stepper an additional amount instead of setting to a specific rotation
          * tSteps = dy / dx
          */
-        void rotate(int degl, int degr, uint16_t t){
+        static void rotate(int degl, int degr, uint16_t t){
             int ltSteps = (int)(StepsInRevolution * degl / 360); // Total steps left 
             int rtSteps = (int)(StepsInRevolution * degr / 360); // Total steps right
             Left.setSpeed(600 * ltSteps / t);
@@ -79,7 +82,7 @@ class sStepper{
         /**set to a specified rotation instead of just adding to current rotation
          * tSteps = (y2 - y1) / dx
          */
-        void SetStep(int degl, int degr, uint16_t t){
+        static void SetStep(int degl, int degr, uint16_t t){
             int ltSteps = (int)(StepsInRevolution * degl / 360) - lSteps; // Total steps left
             int rtSteps = (int)(StepsInRevolution * degr / 360) - rSteps; // Total steps right
             Left.setSpeed(600 * ltSteps / t);
@@ -90,26 +93,61 @@ class sStepper{
             rSteps = rtSteps;
         }
         
-        //For use with calibration: sets steps taken for both motors to be 0. Used for initial calibration, does not rotate motors.
-        void CalibrateRotation(){
-            lSteps = 0;
-            rSteps = 0;
+        //For use with calibration: uses buttons or joystick from Menu Handler - **Call in Setup**
+        static void CalibrateRotation(){
+            if(!MenuHandler::radial) return;
+            else if(!MenuHandler::radial){
+                for(;;){
+                    MenuHandler::CalculateJoystick();
+                    uint32_t time = millis();
+                    uint32_t prevtime = 0;
+                    int degrees = (int)(MenuHandler::joystick.posPolar.Y - 180.0f);
+                    if((time - prevtime) > 500){
+                            rotate(degrees, 0, 200);
+                        }
+
+                    if((MenuHandler::GetButton2State()) && (MenuHandler::button2TimeOn > MenuHandler::holdingTime)){ //calibrate left
+                        break;
+                    }
+                }
+
+                delay(100);
+
+                for(;;){
+                    MenuHandler::CalculateJoystick();
+                    uint32_t time = millis();
+                    uint32_t prevtime = 0;
+                    int degrees = (int)(MenuHandler::joystick.posPolar.Y - 180.0f);
+                    if((time - prevtime) > 500){
+                        rotate(0, degrees, 200);
+                    }
+
+                    if((MenuHandler::GetButton2State()) && (MenuHandler::button2TimeOn > MenuHandler::holdingTime)){ //calibrate right
+                        break;
+                    }
+                }
+            }
         }
 
         /** Set to happy, mad, scared, or sad over 't' ms.
-         * @param mode Choose from happy, mad, scared, sad
+         * @param mode Choose from happy = 0, mad = 1, scared = 2, sad = 3. Default is happy
          */
-        void emotion(Modes mode, uint16_t t){
-            switch(mode){
-                case happy: 
-                    rotate(((int)(rSteps * 360 / StepsInRevolution) - 90), ((int)(rSteps * 360 / StepsInRevolution) + 90), t);
-                case mad:
+        static void emotion(uint8_t mode, uint16_t t){
+            if(digitalRead(aa) && digitalRead(bb) && digitalRead(cc) && digitalRead(dd)){
+                if (mode == 1){
                     rotate(180, 180, t);
-                case scared:
+                }
+                else if (mode == 2){
                     rotate(-180, -180, t);
-                case sad:
+                }
+                else if (mode == 3){
                     rotate(360, 360, t);
+                }
+                else if (mode == 0){
+                    rotate(((int)(rSteps * 360 / StepsInRevolution) - 90), ((int)(rSteps * 360 / StepsInRevolution) + 90), t);
+                }
             }
+                    else Serial.print(" 1 or more motor(s) offline! "); //debug
         }
 };
 
@@ -118,8 +156,8 @@ uint8_t sStepper::bb;
 uint8_t sStepper::cc;
 uint8_t sStepper::dd;
 uint8_t sStepper::StepperSpeed = 120;
-Stepper sStepper::Left = Stepper(StepsInRevolution, aa, bb);
-Stepper sStepper::Right = Stepper(StepsInRevolution, cc, dd);
+Stepper sStepper::Left;
+Stepper sStepper::Right;
 bool sStepper::bhappy, sStepper::bmad, sStepper::bscared, sStepper::bsad, sStepper::wiggle = false;
 int16_t sStepper::rSteps = 0;
 int16_t sStepper::lSteps = 0;

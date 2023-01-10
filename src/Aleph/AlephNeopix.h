@@ -2,33 +2,26 @@
 
 #include <Adafruit_NeoPixel.h>
 
-#define PIN 19 // May need to change
-#define ledCt 72 // May also need to change default  - 11/3/22
-
 /** Aleph needed LED strips:
  *  1 - side circles, horns
  *  2 - on-body strips
  *  3 - wings (?)
  */
 
-class addedLEDs{
+class AlephNeopixel{
     private:
-
-    static Adafruit_NeoPixel ring;
-    static bool status; // Debugging purposes
+    Adafruit_NeoPixel ring;
+    const uint16_t ledCt = 70;
+    const uint8_t pin = 22;
 
     public:
+    AlephNeopixel(){};
 
-    enum modes{
-        
-    };
-
-    static bool Initialize(uint8_t numleds, uint8_t brightness){ // Initialize with number of leds and brightness
-        ring.updateLength(numleds);
+    void Initialize(uint8_t brightness){ // Initialize with number of leds (set) and brightness
+        ring = Adafruit_NeoPixel(ledCt, pin, NEO_GRB + NEO_KHZ800); 
+        ring.setPin(pin);
         ring.setBrightness(brightness);
-
         ring.begin();
-        status = true;
     }
 
     void setBrightness(uint8_t brightness){
@@ -40,13 +33,16 @@ class addedLEDs{
     }
 
     uint8_t GetLEDCt(){
-        return ring.numPixels();
+        return ledCt;
+    } 
+
+    void SetColor(uint16_t n, uint8_t R, uint8_t G, uint8_t B){
+        ring.setPixelColor(n, R, G, B);
     }
 
-    void syncToFace(){
-        
+    void Display(){
+        ring.show();
     }
 };
 
-Adafruit_NeoPixel addedLEDs::ring = Adafruit_NeoPixel(ledCt, PIN, NEO_GRB + NEO_KHZ800);
-
+AlephNeopixel AlephNeopix;

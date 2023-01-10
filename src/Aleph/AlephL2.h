@@ -2,7 +2,7 @@
 
 #include "Arduino.h"
 #include "..\Math\Rotation.h"
-#include "Morph\Morph.h"
+#include "..\Morph\Morph.h"
 #include "..\Materials\SimpleMaterial.h"
 #include "..\Render\IndexGroup.h"
 #include "..\Render\Object3D.h"

@@ -39,6 +39,8 @@ private:
     static float outputData[OutputBins];
     static float outputDataFilt[OutputBins];
     static FFTFilter fftFilters[OutputBins];
+    static FFTFilter fftFiltersA[OutputBins];
+    static float output[OutputBins];
     
     static arm_cfft_radix4_instance_f32 RadixFFT;
 
@@ -124,11 +126,25 @@ public:
         return outputDataFilt;
     }
 
+    static float* GetScaledOutputMagnitude(){
+        for(int i = 1; i < FFTSize / 2; i++){
+            float intensity = 20.0f * log10f(outputMagn[i]);
+
+            intensity = map(intensity, minDB, maxDB , 0.0f, 1.0f);
+            intensity = fftFiltersA[i].Filter((intensity / (intensity + 1.0f)));
+            float previousIntensity = intensity;
+
+            if(intensity >= (previousIntensity * 1.1f)) intensity = previousIntensity * 1.1f;
+            output[i] = intensity;
+        }
+        return output;
+    }
+
     static float GetCurrentMagnitude(){
         return threshold;
     }
     
-    static void Update(bool bassBoost = false){
+    static void Update(){
         if(!samplesReady && timeStep.IsReady()) return;
 
         arm_cfft_radix4_init_f32(&RadixFFT, FFTSize, 0, 1);
@@ -136,25 +152,14 @@ public:
         arm_cmplx_mag_f32(inputSamp, outputMagn, FFTSize);
         
         float averageMagnitude = 0.0f;
+        for (uint8_t i = 0; i < OutputBins - 1; i++){
+            float intensity = 20.0f * log10f(AverageMagnitude(i, i + 1));
+            intensity = map(intensity, minDB, maxDB, 0.0f, 1.0f);
 
-        if(bassBoost){
-            for (uint8_t i = 0; i < OutputBins - 1; i++){
-                float intensity = (40.0f * log10f(AverageMagnitude(i, i + 1))) / i;
-                intensity = map(intensity, (2.0f * minDB) / i, (2.0f * maxDB) / i, 0.0f, 1.0f);
-
-                outputData[i] = intensity;
-                outputDataFilt[i] = fftFilters[i].Filter(intensity);
-                if (i % 12 == 0) averageMagnitude = peakFilterRate.Filter(inputStorage[i] / 4096.0f);
-            }
+            outputData[i] = intensity;
+            outputDataFilt[i] = fftFilters[i].Filter(intensity);
+            if (i % 12 == 0) averageMagnitude = peakFilterRate.Filter(inputStorage[i] / 4096.0f);
         }
-            for (uint8_t i = 0; i < OutputBins - 1; i++){
-                float intensity = 20.0f * log10f(AverageMagnitude(i, i + 1));
-                intensity = map(intensity, minDB, maxDB, 0.0f, 1.0f);
-
-                outputData[i] = intensity;
-                outputDataFilt[i] = fftFilters[i].Filter(intensity);
-                if (i % 12 == 0) averageMagnitude = peakFilterRate.Filter(inputStorage[i] / 4096.0f);
-            }
 
         averageMagnitude *= 10.0f;
         threshold = powf(averageMagnitude, 2.0f);
@@ -188,5 +193,7 @@ float MicrophoneFourier::outputMagn[];
 float MicrophoneFourier::outputData[];
 float MicrophoneFourier::outputDataFilt[];
 FFTFilter MicrophoneFourier::fftFilters[];
+FFTFilter MicrophoneFourier::fftFiltersA[];
+float MicrophoneFourier::output[OutputBins];
 
 arm_cfft_radix4_instance_f32 MicrophoneFourier::RadixFFT;

@@ -9,18 +9,7 @@
 class Menu{
 public:
     enum MenuState{
-        EarMotors,
-
-        EarCalibration,
-
-
         Faces,
-
-        Sad,
-
-
-        Settings,
-
         Bright,
         AccentBright,
         Microphone,
@@ -28,8 +17,7 @@ public:
         BoopSensor,
         SpectrumMirror,
         FaceSize,
-        Color,
-        PupilStatus
+        Color
     };
 
 private:
@@ -48,7 +36,7 @@ private:
     static float rotation;
     static float showMenuRatio;
 
-    static const uint8_t menuCount = 14;
+    static const uint8_t menuCount = 9;
     static const uint8_t menuLength = 12;
     static TextEngine<2, menuLength * menuCount> textEngine;
     static uint8_t faceCount;
@@ -58,7 +46,6 @@ private:
     static String line2;
 
     static void SetMaxEntries(){
-        MenuHandler::SetMenuMax(EarCalibration, 2);
         MenuHandler::SetMenuMax(Faces, faceCount);
         MenuHandler::SetMenuMax(Bright, 10);
         MenuHandler::SetMenuMax(AccentBright, 10);
@@ -68,12 +55,9 @@ private:
         MenuHandler::SetMenuMax(SpectrumMirror, 2);
         MenuHandler::SetMenuMax(FaceSize, 4);
         MenuHandler::SetMenuMax(Color, 11);
-        MenuHandler::SetMenuMax(PupilStatus, 2);
-        MenuHandler::SetMenuMax(EarMotors, 2);
     }
 
     static void SetDefaultEntries(){
-        MenuHandler::SetDefaultValue(EarCalibration, 0);
         MenuHandler::SetDefaultValue(Faces, 0);
         MenuHandler::SetDefaultValue(Bright, 3);
         MenuHandler::SetDefaultValue(AccentBright, 5);
@@ -83,14 +67,12 @@ private:
         MenuHandler::SetDefaultValue(SpectrumMirror, 0);
         MenuHandler::SetDefaultValue(FaceSize, 0);
         MenuHandler::SetDefaultValue(Color, 0);
-        MenuHandler::SetDefaultValue(PupilStatus, 1);
-        MenuHandler::SetDefaultValue(EarMotors, 1);
 
         MenuHandler::SetInitialized();
     }
 
 public:
-    static void Initialize(uint8_t faceCount, uint8_t sensitivity, uint8_t button1Pin, uint8_t button2Pin, uint8_t joystickXPin, uint8_t joystickYPin, uint16_t holdingTime, Vector2D size = Vector2D(240, 50)){
+    static void Initialize(uint8_t faceCount, uint8_t button1pin, uint8_t button2pin, uint16_t holdingTime, Vector2D size = Vector2D(240, 50)){
         Menu::faceCount = faceCount;
 
         dampedSpringX.SetConstants(1.0f, 0.5f);
@@ -102,7 +84,7 @@ public:
         textEngine.SetPositionOffset(position);
         textEngine.SetBlinkTime(200);
 
-        if (!MenuHandler::Initialize(sensitivity, joystickXPin, joystickYPin, button1Pin, button2Pin, holdingTime)){
+        if (!MenuHandler::Initialize(button1pin, button2pin, holdingTime)){
             SetDefaultEntries();
         }
 
@@ -227,9 +209,7 @@ public:
         line2 += UseBoopSensor() ? "   on OFF   " : "   ON off   ";
         line2 += MirrorSpectrumAnalyzer() ? "   on OFF   " : "   ON off   ";
         line2 += GenerateLine(4, GetFaceSize());
-        //line2 += GenerateLine(10, GetFaceColor());
-        line2 += GenerateLine(2, GetPupilStatus());
-        line2 += GenerateLine(2, GetEarStatus());
+        line2 += GenerateLine(10, GetFaceColor());
 
         textEngine.SetText(1, line2, false);
     }
@@ -268,14 +248,6 @@ public:
 
     static uint8_t GetFaceColor(){
         return MenuHandler::GetMenuValue(Color);
-    }
-
-    static uint8_t GetPupilStatus(){
-        return MenuHandler::GetMenuValue(PupilStatus);
-    }
-
-    static uint8_t GetEarStatus(){
-        return MenuHandler::GetMenuValue(EarMotors);
     }
 
     static float ShowMenu(){
