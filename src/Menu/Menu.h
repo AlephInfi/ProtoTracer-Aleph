@@ -93,6 +93,27 @@ public:
         MenuHandler::Begin();
     }
 
+    static void Initialize(uint8_t faceCount, uint8_t buttonPin1, uint8_t buttonPin2, uint16_t holdingTime, Vector2D size = Vector2D(240, 50)){
+        Menu::faceCount = faceCount;
+
+        dampedSpringX.SetConstants(1.0f, 0.5f);
+        dampedSpringShow.SetConstants(1.0f, 0.5f);
+
+        SetSize(size);
+
+        textEngine.SetMaterial(&material);
+        textEngine.SetPositionOffset(position);
+        textEngine.SetBlinkTime(200);
+
+        if (!MenuHandler::Initialize(buttonPin1, buttonPin2, holdingTime, true)){
+            SetDefaultEntries();
+        }
+
+        SetMaxEntries();
+
+        MenuHandler::Begin();
+    }
+
     static Material* GetMaterial(){
         return &textEngine;
     }

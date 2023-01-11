@@ -26,7 +26,7 @@ class PupilTrack{
         if(debug) this->debug = true;
     }
 
-    //use non-menu joystick
+    //use independent joystick
     void Initialize(uint8_t sensitivity, uint8_t x, uint8_t y, Vector3D basis = Vector3D(0.0f, 0.0f, 0.0f), bool debug = false){
         this->joystick.Initialize(x, y, sensitivity);
         this->sensitivity = sensitivity;

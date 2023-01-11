@@ -53,6 +53,7 @@ private:
 public:
     static bool radial;
     static bool twobutton;
+    static bool IsNormal;
 
     static uint16_t holdingTime;
 
@@ -65,7 +66,9 @@ private:
     {
         currentTime = millis();
         pinState = digitalRead(button1Pin);
+        pinState2 = digitalRead(button2Pin);
         timeOn = 0;
+        timeOn2 = 0;
 
         if (pinState && !previousState)
         { // pin not pressed, not triggered -> reset time
@@ -81,10 +84,6 @@ private:
             previousState = true;
         }
 
-        currentTime = millis();
-        pinState2 = digitalRead(button2Pin);
-        timeOn2 = 0;
-
         if (pinState2 && !previousState2)
         { // pin2 not pressed, not triggered -> reset time
             previousMillisHold2 = currentTime;
@@ -98,8 +97,6 @@ private:
         { // pin2 is pressed
             previousState2 = true;
         }
-
-        currentTime = millis();
     }
 
     // Regular - one button
@@ -126,6 +123,54 @@ private:
             currentValue[currentMenu] += 1;
             if (currentValue[currentMenu] >= maxValue[currentMenu])
                 currentValue[currentMenu] = 0;
+        }
+    }
+
+    // Regular modified: two buttons, no submenu
+    static void UpdateStateNormal()
+    {
+        UpdateButtonState();
+
+        if (timeOn > holdingTime && pinState)
+        {Serial.print("0");
+            previousMillisHold = currentTime;
+            MenuState = 0;
+
+            EEPROMObj.WriteEEPROM(currentMenu, currentValue[currentMenu]);
+
+            currentMenu += 1;
+            if (currentMenu >= menuCount)
+                currentMenu = 0;
+        }
+        else if (timeOn > 50 && pinState)
+        {Serial.print("1");
+            MenuState = 1;
+            previousMillisHold = currentTime;
+
+            currentValue[currentMenu] += 1;
+            if (currentValue[currentMenu] >= maxValue[currentMenu])
+                currentValue[currentMenu] = 0;
+        }
+
+        if (timeOn2 > holdingTime && pinState2)
+        {Serial.print("2");
+            previousMillisHold = currentTime;
+            MenuState = 2;
+
+            EEPROMObj.WriteEEPROM(currentMenu, currentValue[currentMenu]);
+
+            currentMenu -= 1;
+            if (currentMenu < 0)
+                currentMenu = menuCount;
+        }
+        else if (timeOn2 > 50 && pinState2)
+        {Serial.print("3");
+            MenuState = 3;
+            previousMillisHold = currentTime;
+
+            currentValue[currentMenu] -= 1;
+            if (currentValue[currentMenu] < 0)
+                currentValue[currentMenu] = maxValue[currentMenu];
         }
     }
 
@@ -255,8 +300,6 @@ private:
                 }
             }
 
-            UpdateButtonState();
-
             if(joystick.posPolar.X < 0.8) previousJoystickState = false; 
 
             button2TimeOn = timeOn2;
@@ -341,8 +384,10 @@ public:
             menuChangeTimer.begin(UpdateStateRadial, 1000);
         else if (!radial)
         {
-            if (twobutton)
-                menuChangeTimer.begin(UpdateState1, 1000);
+            if (twobutton){
+                if(IsNormal) menuChangeTimer.begin(UpdateStateNormal, 1000);
+                else menuChangeTimer.begin(UpdateState1, 1000);
+            }
             else if (!twobutton)
                 menuChangeTimer.begin(UpdateState, 1000);
         }
@@ -367,11 +412,13 @@ public:
         return EEPROMObj.ReadEEPROM(menuCount + 1) != 255;
     }
 
-    static bool Initialize(uint8_t button1pin, uint8_t button2pin, uint16_t holdingTime)
+    static bool Initialize(uint8_t button1pin, uint8_t button2pin, uint16_t holdingTime, bool IsNormal = false)
     { // if true, eeprom needs set
         MenuHandler::twobutton = true;
+        MenuHandler::IsNormal = IsNormal;
         MenuHandler::holdingState = true;
         MenuHandler::previousState = false;
+        MenuHandler::previousState2 = false;
 
         pinMode(button1pin, INPUT_PULLUP);
         pinMode(button2pin, INPUT_PULLUP);
@@ -380,17 +427,25 @@ public:
         MenuHandler::button2Pin = button2pin;
         MenuHandler::holdingTime = holdingTime;
 
-        for (uint8_t i = 0; i < menuCount; i++)
-        {
-            currentValue[i] = EEPROMObj.ReadEEPROM(i); // set menu
-
-            for (uint8_t ii = 0; ii < SubMenuCount; ii++)
-            { // set sub menu within menu
-                currentSubValue[currentMenu][currentSubMenu] = EEPROMObj.ReadEEPROM(menuCount + 1 + (i * SubMenuCount) + ii);
+        if(IsNormal){
+            for (uint8_t i = 0; i < menuCount; i++){
+                currentValue[i] = EEPROMObj.ReadEEPROM(i);
             }
-        }
 
-        return EEPROMObj.ReadEEPROM(menuCount + (SubMenuCount * menuCount) + 1) != 255; // 9 menus, 8 submenus in all 9, add one to check
+            return EEPROMObj.ReadEEPROM(menuCount + 1) != 255;
+        }
+        else{
+            for (uint8_t i = 0; i < menuCount; i++){
+                currentValue[i] = EEPROMObj.ReadEEPROM(i); // set menu
+
+                for (uint8_t ii = 0; ii < SubMenuCount; ii++)
+                { // set sub menu within menu
+                    currentSubValue[currentMenu][currentSubMenu] = EEPROMObj.ReadEEPROM(menuCount + 1 + (i * SubMenuCount) + ii);
+                }
+            }
+
+            return EEPROMObj.ReadEEPROM(menuCount + (SubMenuCount * menuCount) + 1) != 255; // 9 menus, 8 submenus in all 9, add one to check
+        }
     }
 
     static bool Initialize(uint8_t sensitivity, uint8_t X, uint8_t Y, uint8_t button1Pin, uint8_t button2Pin, uint16_t holdingTime)
@@ -542,6 +597,7 @@ uint8_t MenuHandler::Layer = 0;
 uint8_t MenuHandler::button1Pin;
 bool MenuHandler::radial = false;
 bool MenuHandler::twobutton = false;
+bool MenuHandler::IsNormal = false;
 uint8_t MenuHandler::button2Pin;
 
 bool MenuHandler::holdingState = true;

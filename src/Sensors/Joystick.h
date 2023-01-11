@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include "Math\Mathematics.h"
 #include "Math\Vector2D.h"
-#include "Filter\KalmanFilter.h"
+#include "Filter\RunningAverageFilter.h"
 
 class Joystick{
     private:
@@ -22,14 +22,12 @@ class Joystick{
 
     static float previousReadX;
     static float previousReadY;
-    static long previousMillis;
 
-    static long IntervalMillis;
-    static long Interval2Millis;
-    static long Interval3Millis;
+    static RunningAverageFilter<25> FilterX;
+    static RunningAverageFilter<25> FilterY;
 
-    static KalmanFilter<10> FilterX;
-    static KalmanFilter<10> FilterY;
+    static RunningAverageFilter<25> FilterXout;
+    static RunningAverageFilter<25> FilterYout;
 
     public:
 
@@ -67,48 +65,29 @@ class Joystick{
     static void Calculate(){
         float readX = FilterX.Filter(analogRead(X));
         float readY = FilterY.Filter(analogRead(Y));
-
-        float dT = millis() - previousMillis;
-        float dX = 0;
-        float dY = 0;
-
-        if(millis() - Interval3Millis >= 100){
-            float tempX = FilterX.Filter(analogRead(X));
-            float tempY = FilterY.Filter(analogRead(Y));
-            dX = (tempX - previousReadX);
-            dY = (tempY - previousReadY);
-
-            Interval3Millis = millis();
-        }
     
-        previousMillis = millis();
         previousReadX = readX;
         previousReadY = readY;
 
-        if(millis() - IntervalMillis > 1000){
-            if((dX < 50) && (dY < 50)){
-                if(readX > xMax) xMax = readX;
-                if(readY > yMax) yMax = readY;
+        if(readX > xMax) xMax = readX;
+        if(readY > yMax) yMax = readY;
 
-                if(readX < minX) minX = readX;
-                if(readY < minY) minY = readY;
-            }
+        if(readX < minX) minX = readX;
+        if(readY < minY) minY = readY;
 
-            IntervalMillis = millis();
-        }
+        readX = Mathematics::Constrain(Mathematics::Map(readX, minX, xMax, -1.0f, 1.0f), -1.0f, 1.0f);
+        readY = Mathematics::Constrain(Mathematics::Map(readY, minY, yMax, -1.0f, 1.0f), -1.0f, 1.0f);
 
-        if(dX < 50.0f || dY < 50.0f){ 
-            readX = Mathematics::Constrain(Mathematics::Map(readX, minX, xMax, -1.0f, 1.0f), -1.0f, 1.0f);
-            readY = Mathematics::Constrain(Mathematics::Map(readY, minY, yMax, -1.0f, 1.0f), -1.0f, 1.0f);
+        FilterXout.Filter(readX);
+        FilterYout.Filter(readY);
 
-            posPolar.X = Mathematics::Constrain((powf(readX, 2) + powf(readY, 2)), 0.0f, 1.0f);
-            posPolar.Y = atan( readY / readX ) * 180.0f / PI;
-            if(readX < 0.0f || (readY < 0.0f && readX < 0.0f)) posPolar.Y += 180.0f;
-            else if(readY < 0.0f) posPolar.Y += 360.0f;
+        posPolar.X = Mathematics::Constrain((powf(readX, 2) + powf(readY, 2)), 0.0f, 1.0f);
+        posPolar.Y = atan( readY / readX ) * 180.0f / PI;
+        if(readX < 0.0f || (readY < 0.0f && readX < 0.0f)) posPolar.Y += 180.0f;
+        else if(readY < 0.0f) posPolar.Y += 360.0f;
 
-            posRectangular.X = readX;
-            posRectangular.Y = readY;
-        }
+        posRectangular.X = readX;
+        posRectangular.Y = readY;
     }
 
     static float GetXMax(){
@@ -127,11 +106,11 @@ class Joystick{
         return minY;
     }
 
-    static float GetUnfilteredX(){
-        return previousReadX;
+    static uint16_t GetUnfilteredX(){
+        return analogRead(X);
     }
-    static float GetUnfilteredY(){
-        return previousReadY;
+    static uint16_t GetUnfilteredY(){
+        return analogRead(Y);
     }
 };
 
@@ -149,10 +128,8 @@ float Joystick::minY = 2000.0f;
 
 float Joystick::previousReadX = 0.0f;
 float Joystick::previousReadY = 0.0f;
-long Joystick::previousMillis = 0;
-long Joystick::IntervalMillis = 0;
-long Joystick::Interval2Millis = 0;
-long Joystick::Interval3Millis = 0;
 
-KalmanFilter<10> Joystick::FilterX;
-KalmanFilter<10> Joystick::FilterY;
+RunningAverageFilter<25> Joystick::FilterX;
+RunningAverageFilter<25> Joystick::FilterY;
+RunningAverageFilter<25> Joystick::FilterXout;
+RunningAverageFilter<25> Joystick::FilterYout;

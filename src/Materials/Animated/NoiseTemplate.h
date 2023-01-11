@@ -8,7 +8,7 @@
 class Noise : public AnimatedMaterial{
 private:
     FunctionGenerator fGenMatGradient = FunctionGenerator(FunctionGenerator::Sine, 0.0f, 0.5f, 6.0f);
-    RGBColor noiseSpectrum[3] = {RGBColor(69, 255, 118), RGBColor(31, 35, 255), RGBColor(31, 240, 255)};
+    RGBColor noiseSpectrum[3] = {RGBColor(69, 255, 118), RGBColor(47, 107, 247), RGBColor(31, 255, 200)};
     GradientMaterial<3> gNoiseMat = GradientMaterial<3>(noiseSpectrum, 2.0f, false);
     SimplexNoise<3> sNoise = SimplexNoise<3>(3, &gNoiseMat);
     float simplexNoiseDepth = 0.0f;

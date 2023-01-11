@@ -7,6 +7,7 @@
 #include "..\Objects\LEDStripBackground.h"
 #include "AlephBase.h"
 #include "AlephL2.h"
+#include "AlephDJLogo.h"
 #include "..\Render\Scene.h"
 #include "..\Signals\FunctionGenerator.h"
 #include "..\Menu\Menu.h"
@@ -16,6 +17,7 @@
 
 #include "..\Materials\Animated\RainbowNoise.h"
 #include "..\Materials\Animated\NoiseTemplate.h"
+#include "..\Materials\Animated\LogoNoise.h"
 #include "..\Materials\Animated\RainbowSpiral.h"
 #include "..\Materials\Animated\SpectrumAnalyzer.h"
 #include "..\Materials\Animated\EQGradient.h"
@@ -32,17 +34,23 @@
 
 class AlephHUB75 : public Animation<4> {
 private:
+
+    const uint8_t numParamsL1 = 23 + 1; //23 parameters plus enum value 0, + 1 because other enums start at 0
+    const uint8_t numParamsL2 = 23 + 1 + 4 + 1; //4 parameters plus enum value 0, + 1 because other enums start at 0
+
     AlephBase L1;
     AlephL2 L2;
+    AlephDJLogo Logo;
     Background background;
     LEDStripBackground ledStripBackground;
-    EasyEaseAnimator<21> eEA = EasyEaseAnimator<21>(EasyEaseInterpolation::Overshoot, 1.0f, 0.35f);
+    EasyEaseAnimator<35> eEA = EasyEaseAnimator<35>(EasyEaseInterpolation::Overshoot, 1.0f, 0.35f);
     PupilTrack pupil;
     sStepper ears; // for Aleph
     
     //Materials
     RainbowNoise rainbowNoise;
     Noise AlephNoise;
+    LogoNoise logoNoise;
     RainbowSpiral rainbowSpiral;
     SimpleMaterial redMaterial = SimpleMaterial(RGBColor(255, 0, 0));
     SimpleMaterial orangeMaterial = SimpleMaterial(RGBColor(255, 165, 0));
@@ -57,7 +65,7 @@ private:
     RGBColor DJgrad[7] = {RGBColor(255, 0, 0), RGBColor(255, 100, 0), RGBColor(60, 255, 0), RGBColor(0, 255, 0), RGBColor(0, 255, 100), RGBColor(0, 50, 255), RGBColor(50, 0, 255)};
     GradientMaterial<7> DJMat = GradientMaterial<7>(DJgrad, 1.0f, false);
 
-    MaterialAnimator<11> L1materialAnimator;
+    MaterialAnimator<13> L1materialAnimator;
     MaterialAnimator<5> backgroundMaterial;
     
     EQ sA = EQ(Vector2D(200, 100), Vector2D(85, 50), true, false, false); 
@@ -90,21 +98,26 @@ private:
     uint8_t offsetFaceIndARG = 51;
     uint8_t offsetFaceIndOSC = 52;
 
-    const uint8_t numParamsL1 = 16;
-
     void LinkEasyEase(){
         eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::eMad), AlephBase::eMad, 15, 0.0f, 1.0f);
-        eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::eSad), AlephBase::eSad, 50, 0.0f, 1.0f);
+        eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::eSad), AlephBase::eSad, 30, 0.0f, 1.0f);
         eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::eScared), AlephBase::eScared, 10, 0.0f, 1.0f);
         eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::eDoubt), AlephBase::eDoubt, 25, 0.0f, 1.0f);
         eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::mSad), AlephBase::mSad, 45, 0.0f, 1.0f);
         eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::eBlush), AlephBase::eBlush, 45, 0.0f, 1.0f);
-        eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::mSad), AlephBase::mSad, 45, 0.0f, 1.0f);
+        eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::eBoop), AlephBase::eBoop, 10, 0.0f, 1.0f);
+        eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::eScared), AlephBase::eScared, 45, 0.0f, 1.0f);
+        eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::Blush), AlephBase::Blush, 3, 0.0f, 1.0f);
+        eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::eHeart), AlephBase::eHeart, 30, 0.0f, 1.0f);
 
         eEA.AddParameter(L2.GetMorphWeightReference(AlephL2::PupilVertical), AlephL2::PupilVertical + numParamsL1, 30, 0.5f, 1.0f);
         eEA.AddParameter(L2.GetMorphWeightReference(AlephL2::PupilHorizontal), AlephL2::PupilHorizontal + numParamsL1, 30, 0.5f, 1.0f);
         eEA.AddParameter(L2.GetMorphWeightReference(AlephL2::PupilDilate), AlephL2::PupilDilate + numParamsL1, 30, 0.0f, 1.0f);
-        eEA.AddParameter(L2.GetMorphWeightReference(AlephL2::PupilOff), AlephL2::PupilOff + numParamsL1, 30, 0.0f, 1.0f);
+        eEA.AddParameter(L2.GetMorphWeightReference(AlephL2::PupilOff), AlephL2::PupilOff + numParamsL1, 2, 0.0f, 1.0f);
+
+        eEA.AddParameter(Logo.GetMorphWeightReference(AlephDJLogo::ShapeAnimation), AlephDJLogo::ShapeAnimation + numParamsL2, 30, 0.0f, 1.0f);
+        eEA.AddParameter(Logo.GetMorphWeightReference(AlephDJLogo::Dissapate), AlephDJLogo::Dissapate + numParamsL2, 30, 0.0f, 1.0f);
+        eEA.AddParameter(Logo.GetMorphWeightReference(AlephDJLogo::Explode), AlephDJLogo::Explode + numParamsL2, 30, 0.0f, 1.0f);
 
         eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::m_EE), AlephBase::m_EE, 2, 0.0f, 1.0f);
         eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::m_IH), AlephBase::m_IH, 2, 0.0f, 1.0f);
@@ -114,8 +127,6 @@ private:
         eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::m_AH), AlephBase::m_AH, 2, 0.0f, 1.0f);
         eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::m_OO), AlephBase::m_OO, 2, 0.0f, 1.0f);
         eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::m_SS), AlephBase::m_SS, 2, 0.0f, 1.0f);
-        
-        eEA.AddParameter(L1.GetMorphWeightReference(AlephBase::Blush), AlephBase::Blush, 30, 0.0f, 1.0f);
 
         eEA.AddParameter(&offsetFaceSA, offsetFaceIndSA, 40, 0.0f, 1.0f);
         eEA.AddParameter(&offsetFaceARG, offsetFaceIndARG, 40, 0.0f, 1.0f);
@@ -127,13 +138,17 @@ private:
     }
 
     void ChangeInterpolationMethods(){
-        eEA.SetInterpolationMethod(AlephBase::Blush, EasyEaseInterpolation::Cosine);
+        eEA.SetInterpolationMethod(AlephBase::Blush, EasyEaseInterpolation::Linear);
         eEA.SetInterpolationMethod(AlephBase::eSad, EasyEaseInterpolation::Cosine);
         eEA.SetInterpolationMethod(AlephBase::eBlush, EasyEaseInterpolation::Cosine);
         eEA.SetInterpolationMethod(AlephBase::eDoubt, EasyEaseInterpolation::Cosine);
         eEA.SetInterpolationMethod(AlephBase::eHeart, EasyEaseInterpolation::Cosine);
         eEA.SetInterpolationMethod(AlephBase::eMad, EasyEaseInterpolation::Cosine);
         eEA.SetInterpolationMethod(AlephBase::eScared, EasyEaseInterpolation::Cosine);
+
+        eEA.SetInterpolationMethod(AlephDJLogo::ShapeAnimation, EasyEaseInterpolation::Cosine);
+        eEA.SetInterpolationMethod(AlephDJLogo::Dissapate, EasyEaseInterpolation::Cosine);
+        eEA.SetInterpolationMethod(AlephDJLogo::Explode, EasyEaseInterpolation::Cosine);
 
         eEA.SetInterpolationMethod(AlephBase::mSad, EasyEaseInterpolation::Cosine);
         
@@ -158,7 +173,9 @@ private:
         L1materialAnimator.AddMaterial(Material::Replace, &blueMaterial, 40, 0.0f, 1.0f);//layer 7
         L1materialAnimator.AddMaterial(Material::Replace, &rainbowSpiral, 40, 0.0f, 1.0f);//layer 8
         L1materialAnimator.AddMaterial(Material::Lighten, &rainbowNoise, 40, 0.35f, 1.0f);//layer 9
-        L1materialAnimator.AddMaterial(Material::Replace, &AlephNoise, 40, 0.35f, 1.0f);//layer 10
+        L1materialAnimator.AddMaterial(Material::Replace, &AlephNoise, 40, 0.0f, 1.0f);//layer 10
+        L1materialAnimator.AddMaterial(Material::Replace, &logoNoise, 40, 0.0f, 1.0f);//layer 11
+        L1materialAnimator.AddMaterial(Material::Replace, &pinkMaterial, 40, 0.0f, 1.0f);//layer 1
 
         backgroundMaterial.SetBaseMaterial(Material::Add, Menu::GetMaterial());
         backgroundMaterial.AddMaterial(Material::Add, &sA, 20, 0.0f, 1.0f);
@@ -172,12 +189,14 @@ private:
 
     void Default(){
         ears.emotion(sStepper::happy, 700);
+        eEA.AddParameterFrame(AlephL2::PupilOff + numParamsL1, 0.0f);
     }
 
     void Angry(){
         ears.emotion(sStepper::mad, 400);
         eEA.AddParameterFrame(AlephBase::eMad, 1.0f);
         eEA.AddParameterFrame(AlephBase::mSad, 1.0f);
+        eEA.AddParameterFrame(AlephL2::PupilOff + numParamsL1, 0.0f);
         L1materialAnimator.AddMaterialFrame(redMaterial, 0.9f);
     }
 
@@ -185,14 +204,15 @@ private:
         ears.emotion(sStepper::sad, 700);
         eEA.AddParameterFrame(AlephBase::eSad, 1.0f);
         eEA.AddParameterFrame(AlephBase::mSad, 1.0f);
+        eEA.AddParameterFrame(AlephL2::PupilOff + numParamsL1, 0.0f);
         L1materialAnimator.AddMaterialFrame(blueMaterial, 0.9f);
     }
 
     void Boop(){
         ears.emotion(sStepper::happy, 700);
         eEA.AddParameterFrame(AlephBase::eBoop, 1.0f);
-        eEA.AddParameterFrame(AlephBase::Blush, 0.0f);
-        eEA.AddParameterFrame(AlephL2::PupilOff, 1.0f);
+        eEA.AddParameterFrame(AlephBase::Blush, 1.0f);
+        eEA.AddParameterFrame(AlephL2::PupilOff + numParamsL1, 1.0f);
         L1materialAnimator.AddMaterialFrame(pinkMaterial, 0.9f);
     }
     
@@ -200,30 +220,33 @@ private:
         ears.emotion(sStepper::sad, 1000);
         eEA.AddParameterFrame(AlephBase::eDoubt, 1.0f);
         eEA.AddParameterFrame(AlephBase::mSad, 0.7f);
+        eEA.AddParameterFrame(AlephL2::PupilOff + numParamsL1, 0.0f);
     }
     
     void Frown(){
         ears.emotion(sStepper::sad, 1000);
         eEA.AddParameterFrame(AlephBase::mSad, 1.0f);
+        eEA.AddParameterFrame(AlephL2::PupilOff + numParamsL1, 0.0f);
     }
 
     void Cute(){
         ears.emotion(sStepper::happy, 500);
         eEA.AddParameterFrame(AlephBase::eBlush, 1.0f);
-        eEA.AddParameterFrame(AlephL2::PupilOff, 1.0f);
+        eEA.AddParameterFrame(AlephL2::PupilOff + numParamsL1, 1.0f);
         L1materialAnimator.AddMaterialFrame(pinkMaterial, 0.9f);
     }
 
     void HeartEyes(){
         ears.emotion(sStepper::happy, 500);
         eEA.AddParameterFrame(AlephBase::eHeart, 1.0f);
-        eEA.AddParameterFrame(AlephL2::PupilOff, 1.0f);
+        eEA.AddParameterFrame(AlephL2::PupilOff + numParamsL1, 1.0f);
         L1materialAnimator.AddMaterialFrame(pinkMaterial, 0.9f);
     }
 
-    void SpectrumAnalyzerFace(){
+    void SpectrumAnalyzerFace(float ratio){
         eEA.AddParameterFrame(offsetFaceIndSA, 1.0f);
 
+        eEA.AddParameterFrame(AlephDJLogo::ShapeAnimation + numParamsL2, ratio);
         backgroundMaterial.AddMaterialFrame(sA, offsetFaceSA);
     }
 
@@ -276,6 +299,7 @@ public:
     AlephHUB75() {
         scene.AddObject(L1.GetObject());
         scene.AddObject(L2.GetObject());
+        scene.AddObject(Logo.GetObject());
         scene.AddObject(background.GetObject());
         scene.AddObject(ledStripBackground.GetObject());
 
@@ -288,14 +312,13 @@ public:
 
         L1.GetObject()->SetMaterial(&L1materialAnimator);
         L2.GetObject()->SetMaterial(&blackMaterial);
+        Logo.GetObject()->SetMaterial(&logoNoise);
         background.GetObject()->SetMaterial(&backgroundMaterial);
         ledStripBackground.GetObject()->SetMaterial(&L1materialAnimator);
 
-        sA.SetMaterial(&DJMat);
-
         //ears.Initialize(24, 25, 28, 29);
-        boop.Initialize(25);
-        pupil.Initialize(80, 26, 27); //uses pins from menu if called without defining joystick pins (26, 27)
+        boop.Initialize(10);
+        pupil.Initialize(80, 27, 26); //uses pins from menu if called without defining joystick pins (26, 27)
 
         MicrophoneFourier::Initialize(15, 8000, 50.0f, 120.0f); //8KHz sample rate, 50dB min, 120dB max default
     }
@@ -303,7 +326,7 @@ public:
     //Initialize dependent objects: menu, joystick calibration, ear calibration
     void Initialize(){
         //Menu::Initialize(6, 80, 30, 31, 26, 27, 500); //Radial
-        Menu::Initialize(10, 30, /*31,*/ 500);//7 is number of faces
+        Menu::Initialize(10, 30, 31, 500);//7 is number of faces
 
         //ears.CalibrateRotation();
     }
@@ -324,6 +347,7 @@ public:
     void Update(float ratio) override {
         L1.Reset();
         L2.Reset();
+        Logo.Reset();
 
         float xOffset = fGenMatXMove.Update();
         float yOffset = fGenMatYMove.Update();
@@ -331,8 +355,11 @@ public:
         Menu::Update();
  
         SetMaterialColor();
- 
+
         bool isBooped = Menu::UseBoopSensor() ? boop.isBooped() : 0;
+
+        Serial.print(isBooped);
+
         uint8_t mode = Menu::GetFaceState();//change by button press
  
         MicrophoneFourier::Update();
@@ -400,8 +427,8 @@ public:
             } 
             else {
                 //Serial.print("spectrum");
-                sA.Update(MicrophoneFourier::GetScaledOutputMagnitude());
-                SpectrumAnalyzerFace();
+                sA.Update(MicrophoneFourier::GetFourierFiltered());
+                SpectrumAnalyzerFace(acosf(ratio));
             }
         }
 
@@ -411,18 +438,19 @@ public:
         //L1.SetMorphWeight(NukudeFace::BiggerNose, 1.0f);
         //L1.SetMorphWeight(NukudeFace::MoveEye, 1.0f);
 
-        
         eEA.AddParameterFrame(AlephL2::PupilHorizontal + numParamsL1, pupil.position.X);
-        eEA.AddParameterFrame(AlephL2::PupilVertical + numParamsL1, pupil.position.Y);
+        eEA.AddParameterFrame(AlephL2::PupilVertical + numParamsL1, -pupil.position.Y);
 
         eEA.Update();
         L1.Update();
         L2.Update();
+        Logo.Update();
 
         float menuRatio = Menu::ShowMenu();
 
         rainbowNoise.Update(ratio);
         AlephNoise.Update(ratio);
+        logoNoise.Update(ratio);
         rainbowSpiral.Update(ratio);
         L1materialAnimator.Update();
         backgroundMaterial.Update();
@@ -438,13 +466,14 @@ public:
         float adjustFaceX = float(faceSize) * 0.05f;
         
         L1.GetObject()->GetTransform()->SetPosition(Vector3D(105.0f + xOffset - xShift + adjustFacePos, 51.5f + yOffset + yShift, 0.0f));
-        L1.GetObject()->GetTransform()->SetScale(Vector3D(-49.0f + adjustFaceX, 49.0f, 1.0f).Multiply(scale));
+        L1.GetObject()->GetTransform()->SetScale(Vector3D(-45.0f + adjustFaceX, 45.0f, 1.0f).Multiply(scale));
         L2.GetObject()->GetTransform()->SetPosition(Vector3D(105.0f + xOffset - xShift + adjustFacePos, 51.5f + yOffset + yShift, -10.0f));
-        L2.GetObject()->GetTransform()->SetScale(Vector3D(-49.0f + adjustFaceX, 49.0f, 1.0f).Multiply(scale));
-
+        L2.GetObject()->GetTransform()->SetScale(Vector3D(-45.0f + adjustFaceX, 45.0f, 1.0f).Multiply(scale));
+        Logo.GetObject()->GetTransform()->SetPosition(Vector3D(55.0f + xOffset - xShift + adjustFacePos, 171.5f + yOffset + yShift, -10.0f));
+        Logo.GetObject()->GetTransform()->SetScale(Vector3D(-2.0f + adjustFaceX, 2.0f, 1.0f).Multiply(scale));
 
         L1.GetObject()->UpdateTransform();
         L2.GetObject()->UpdateTransform();
-
+        Logo.GetObject()->UpdateTransform();
     }
 };
